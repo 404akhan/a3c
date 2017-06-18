@@ -149,7 +149,8 @@ class Worker(object):
       if done:
         self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset()))
         f = open('logs_policy.out', 'a')
-        f.write("agent {}, global_step {}, total_reward {}, episode_length {}\n".format(self.name, global_step, self.total_reward, self.episode_length))
+        f.write("agent {}, local {}, global {}, total_reward {}, episode_length {}\n".format(
+          self.name, self.local_counter, self.global_counter, self.total_reward, self.episode_length))
         f.close()
         self.total_reward = 0
         self.episode_length = 0

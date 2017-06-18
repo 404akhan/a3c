@@ -2,3 +2,5 @@ __pycache__/
 lib/__pycache__/
 lib/atari/__pycache__/
 docs
+logs_policy.out
+nohup.out

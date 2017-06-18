@@ -21,7 +21,6 @@ if import_path not in sys.path:
 
 from lib.atari import helpers as atari_helpers
 from estimators import Model
-from policy_monitor import PolicyMonitor
 from worker import Worker
 
 
