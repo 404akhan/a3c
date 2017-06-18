@@ -35,6 +35,7 @@ class Model():
 
     # We add entropy to the loss to encourage exploration
     self.entropy_pi = -tf.reduce_sum(self.probs_pi * tf.log(self.probs_pi), 1, name="entropy")
+    self.entropy_mean_pi = tf.reduce_mean(self.entropy_pi, name="entropy_mean")
 
     # Get the predictions for the chosen actions only
     gather_indices_pi = tf.range(batch_size) * tf.shape(self.probs_pi)[1] + self.actions
