@@ -1,5 +1,5 @@
-# to run: python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 16
-# or: nohup python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 16 &
+# to run: python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 8
+# or: nohup python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 8 &
 
 import unittest
 import gym
@@ -22,7 +22,7 @@ if import_path not in sys.path:
 from lib.atari import helpers as atari_helpers
 from estimators import Model
 from worker import Worker
-
+from monitor import Monitor
 
 tf.flags.DEFINE_string("model_dir", "/tmp/a3c", "Directory to write Tensorboard summaries and videos to.")
 tf.flags.DEFINE_string("env", "Breakout-v0", "Name of gym Atari environment, e.g. Breakout-v0")
@@ -79,8 +79,6 @@ with tf.device("/cpu:0"):
 
   # Global step iterator
   global_counter = itertools.count()
-  var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "global")
-  saver_work = tf.train.Saver(var_list=var_list)
 
   # Create worker graphs
   workers = []
@@ -99,12 +97,14 @@ with tf.device("/cpu:0"):
       global_counter=global_counter,
       discount_factor = 0.99,
       summary_writer=worker_summary_writer,
-      max_global_steps=FLAGS.max_global_steps,
-      checkpoint_dir=CHECKPOINT_DIR,
-      saver_work=saver_work)
+      max_global_steps=FLAGS.max_global_steps)
     workers.append(worker)
 
   saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
+
+  mon = Monitor(
+    summary_writer=summary_writer,
+    saver=saver)
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
@@ -123,6 +123,10 @@ with tf.Session() as sess:
     t = threading.Thread(target=worker_fn)
     t.start()
     worker_threads.append(t)
+
+  # Start a thread for policy eval task
+  monitor_thread = threading.Thread(target=lambda: mon.continuous_save(FLAGS.eval_every, sess, coord))
+  monitor_thread.start()
 
   # Wait for all workers to finish
   coord.join(worker_threads)
