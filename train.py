@@ -1,5 +1,5 @@
-# to run: python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 8
-# or: nohup python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 8 &
+# to run: python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 16
+# or: nohup python3.5 train.py --model_dir ./docs --env Pong-v0 --t_max 5 --eval_every 300 --parallelism 16 &
 
 import unittest
 import gym

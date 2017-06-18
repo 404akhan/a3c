@@ -13,14 +13,6 @@ import_path = os.path.abspath(os.path.join(current_path, "../.."))
 if import_path not in sys.path:
   sys.path.append(import_path)
 
-from gym.wrappers import Monitor
-import gym
-
-from lib.atari.state_processor import StateProcessor
-from lib.atari import helpers as atari_helpers
-from estimators import ValueEstimator, PolicyEstimator
-from worker import make_copy_params_op
-
 
 class Monitor(object):
   def __init__(self, summary_writer, saver):
