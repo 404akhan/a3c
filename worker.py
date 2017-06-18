@@ -75,6 +75,8 @@ class Worker(object):
     self.sp = StateProcessor()
     self.summary_writer = summary_writer
     self.env = env
+    self.total_reward = 0
+    self.episode_length = 0
 
     # Create local policy/value nets that are not updated asynchronously
     with tf.variable_scope(name):
@@ -130,6 +132,8 @@ class Worker(object):
       action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
       next_state, reward, done, _ = self.env.step(action)
       next_state = atari_helpers.atari_make_next_state(self.state, self.sp.process(next_state))
+      self.total_reward += reward
+      self.episode_length += 1
 
       # Store transition
       transitions.append(Transition(
@@ -144,6 +148,11 @@ class Worker(object):
 
       if done:
         self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset()))
+        f = open('logs_policy.out', 'a')
+        f.write("agent {}, global_step {}, total_reward {}, episode_length {}\n".format(self.name, global_step, self.total_reward, self.episode_length))
+        f.close()
+        self.total_reward = 0
+        self.episode_length = 0
         break
       else:
         self.state = next_state

@@ -103,14 +103,6 @@ with tf.device("/cpu:0"):
 
   saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
 
-  # Used to occasionally save videos for our policy net
-  # and write episode rewards to Tensorboard
-  pe = PolicyMonitor(
-    env=make_env(wrap=False),
-    model_net=model_net,  
-    summary_writer=summary_writer,
-    saver=saver)
-
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   coord = tf.train.Coordinator()
@@ -128,10 +120,6 @@ with tf.Session() as sess:
     t = threading.Thread(target=worker_fn)
     t.start()
     worker_threads.append(t)
-
-  # Start a thread for policy eval task
-  monitor_thread = threading.Thread(target=lambda: pe.continuous_eval(FLAGS.eval_every, sess, coord))
-  monitor_thread.start()
 
   # Wait for all workers to finish
   coord.join(worker_threads)
