@@ -16,7 +16,7 @@ if import_path not in sys.path:
 # from lib import plotting
 from lib.atari.state_processor import StateProcessor
 from lib.atari import helpers as atari_helpers
-from estimators import ValueEstimator, PolicyEstimator
+from estimators import Model
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
@@ -53,6 +53,7 @@ def make_train_op(local_estimator, global_estimator):
 class Worker(object):
   """
   An A3C worker thread. Runs episodes locally and updates global shared value and policy nets.
+
   Args:
     name: A unique name for this worker
     env: The Gym environment used by this worker
@@ -63,13 +64,12 @@ class Worker(object):
     summary_writer: A tf.train.SummaryWriter for Tensorboard summaries
     max_global_steps: If set, stop coordinator when global_counter > max_global_steps
   """
-  def __init__(self, name, env, policy_net, value_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
+  def __init__(self, name, env, model_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
     self.discount_factor = discount_factor
     self.max_global_steps = max_global_steps
     self.global_step = tf.contrib.framework.get_global_step()
-    self.global_policy_net = policy_net
-    self.global_value_net = value_net
+    self.global_model_net = model_net
     self.global_counter = global_counter
     self.local_counter = itertools.count()
     self.sp = StateProcessor()
@@ -80,16 +80,14 @@ class Worker(object):
 
     # Create local policy/value nets that are not updated asynchronously
     with tf.variable_scope(name):
-      self.policy_net = PolicyEstimator(policy_net.num_outputs)
-      self.value_net = ValueEstimator(reuse=True)
+      self.model_net = Model(model_net.num_outputs)
 
     # Op to copy params from global policy/valuenets
     self.copy_params_op = make_copy_params_op(
       tf.contrib.slim.get_variables(scope="global", collection=tf.GraphKeys.TRAINABLE_VARIABLES),
       tf.contrib.slim.get_variables(scope=self.name, collection=tf.GraphKeys.TRAINABLE_VARIABLES))
 
-    self.vnet_train_op = make_train_op(self.value_net, self.global_value_net)
-    self.pnet_train_op = make_train_op(self.policy_net, self.global_policy_net)
+    self.mnet_train_op = make_train_op(self.model_net, self.global_model_net)
 
     self.state = None
 
@@ -117,13 +115,13 @@ class Worker(object):
         return
 
   def _policy_net_predict(self, state, sess):
-    feed_dict = { self.policy_net.states: [state] }
-    preds = sess.run(self.policy_net.predictions, feed_dict)
+    feed_dict = { self.model_net.states: [state] }
+    preds = sess.run(self.model_net.predictions_pi, feed_dict)
     return preds["probs"][0]
 
   def _value_net_predict(self, state, sess):
-    feed_dict = { self.value_net.states: [state] }
-    preds = sess.run(self.value_net.predictions, feed_dict)
+    feed_dict = { self.model_net.states: [state] }
+    preds = sess.run(self.model_net.predictions_v, feed_dict)
     return preds["logits"][0]
 
   def run_n_steps(self, n, sess):
@@ -164,6 +162,7 @@ class Worker(object):
   def update(self, transitions, sess):
     """
     Updates global policy and value networks based on collected experience
+
     Args:
       transitions: A list of experience transitions
       sess: A Tensorflow session
@@ -190,28 +189,17 @@ class Worker(object):
       value_targets.append(reward)
 
     feed_dict = {
-      self.policy_net.states: np.array(states),
-      self.policy_net.targets: policy_targets,
-      self.policy_net.actions: actions,
-      self.value_net.states: np.array(states),
-      self.value_net.targets: value_targets,
+      self.model_net.states: np.array(states),
+      self.model_net.targets_pi: policy_targets,
+      self.model_net.targets_v: value_targets,
+      self.model_net.actions: actions,
     }
 
     # Train the global estimators using local gradients
-    global_step, pnet_loss, vnet_loss, _, _, pnet_summaries, vnet_summaries = sess.run([
+    global_step, mnet_loss, _ = sess.run([
       self.global_step,
-      self.policy_net.loss,
-      self.value_net.loss,
-      self.pnet_train_op,
-      self.vnet_train_op,
-      self.policy_net.summaries,
-      self.value_net.summaries
+      self.model_net.loss,
+      self.mnet_train_op
     ], feed_dict)
 
-    # Write summaries
-    if self.summary_writer is not None:
-      self.summary_writer.add_summary(pnet_summaries, global_step)
-      self.summary_writer.add_summary(vnet_summaries, global_step)
-      self.summary_writer.flush()
-
-    return pnet_loss, vnet_loss, pnet_summaries, vnet_summaries
+    return mnet_loss
