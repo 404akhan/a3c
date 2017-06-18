@@ -20,9 +20,9 @@ if import_path not in sys.path:
   sys.path.append(import_path)
 
 from lib.atari import helpers as atari_helpers
-from estimators_rewrite import Model
-from policy_monitor_rewrite import PolicyMonitor
-from worker_rewrite import Worker
+from estimators import Model
+from policy_monitor import PolicyMonitor
+from worker import Worker
 
 
 tf.flags.DEFINE_string("model_dir", "/tmp/a3c", "Directory to write Tensorboard summaries and videos to.")

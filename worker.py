@@ -16,7 +16,7 @@ if import_path not in sys.path:
 # from lib import plotting
 from lib.atari.state_processor import StateProcessor
 from lib.atari import helpers as atari_helpers
-from estimators_rewrite import Model
+from estimators import Model
 
 Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 

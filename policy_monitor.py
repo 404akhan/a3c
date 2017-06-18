@@ -18,8 +18,8 @@ import gym
 
 from lib.atari.state_processor import StateProcessor
 from lib.atari import helpers as atari_helpers
-from estimators_rewrite import Model
-from worker_rewrite import make_copy_params_op
+from estimators import Model
+from worker import make_copy_params_op
 
 
 class PolicyMonitor(object):
