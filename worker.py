@@ -64,7 +64,9 @@ class Worker(object):
     summary_writer: A tf.train.SummaryWriter for Tensorboard summaries
     max_global_steps: If set, stop coordinator when global_counter > max_global_steps
   """
-  def __init__(self, name, env, model_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
+  def __init__(self, name, env, model_net, global_counter, discount_factor=0.99, 
+    summary_writer=None, max_global_steps=None, checkpoint_dir=None, saver_work=None):
+    
     self.name = name
     self.discount_factor = discount_factor
     self.max_global_steps = max_global_steps
@@ -75,6 +77,8 @@ class Worker(object):
     self.sp = StateProcessor()
     self.summary_writer = summary_writer
     self.env = env
+    self.checkpoint_dir = checkpoint_dir
+    self.saver_work = saver_work
     self.total_reward = 0
     self.episode_length = 0
 
@@ -201,5 +205,8 @@ class Worker(object):
       self.model_net.loss,
       self.mnet_train_op
     ], feed_dict)
+
+    if global_step % 100*1000 == 0 and self.checkpoint_dir:
+      self.saver_work.save(sess, os.path.join(self.checkpoint_dir, "model"))
 
     return mnet_loss

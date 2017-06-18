@@ -79,6 +79,8 @@ with tf.device("/cpu:0"):
 
   # Global step iterator
   global_counter = itertools.count()
+  var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, "global")
+  saver_work = tf.train.Saver(var_list=var_list)
 
   # Create worker graphs
   workers = []
@@ -97,7 +99,9 @@ with tf.device("/cpu:0"):
       global_counter=global_counter,
       discount_factor = 0.99,
       summary_writer=worker_summary_writer,
-      max_global_steps=FLAGS.max_global_steps)
+      max_global_steps=FLAGS.max_global_steps,
+      checkpoint_dir=CHECKPOINT_DIR,
+      saver_work=saver_work)
     workers.append(worker)
 
   saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
