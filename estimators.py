@@ -59,8 +59,8 @@ class Model():
     self.loss_v = tf.reduce_sum(self.losses_v, name="loss_v")
 
     # Combine loss
-    self.loss = self.loss_pi + self.loss_v
-    self.optimizer = tf.train.RMSPropOptimizer(0.001, 0.99, 0.0, 1e-6)
+    self.loss = self.loss_pi + 0.5 * self.loss_v
+    self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
     self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
     self.grads_and_vars = [[grad, var] for grad, var in self.grads_and_vars if grad is not None]
     self.train_op = self.optimizer.apply_gradients(self.grads_and_vars,
